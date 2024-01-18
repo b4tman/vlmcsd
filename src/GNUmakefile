@@ -162,7 +162,7 @@ BASECFLAGS = -DVLMCSD_COMPILER=\"$(notdir $(CC))\" -DVLMCSD_PLATFORM=\"$(TARGETP
 BASELDFLAGS = 
 STRIPFLAGS =
 CLIENTLDFLAGS =
-SERVERLDFLAGS =
+SERVERLDFLAGS = -static
 
 ifndef SAFE_MODE
   BASECFLAGS += -fvisibility=hidden -pipe -fno-common -fno-exceptions -fno-stack-protector -fno-unwind-tables -fno-asynchronous-unwind-tables -fmerge-all-constants
