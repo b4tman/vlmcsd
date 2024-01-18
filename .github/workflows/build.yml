@@ -1,0 +1,104 @@
+name: Test
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+permissions:
+  packages: write
+  contents: read
+
+jobs:
+  build:
+    name: Build image
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        arch: [amd64, arm64]
+        include:
+          - arch: amd64
+            deps: gcc
+            cc: gcc
+            platform: linux/amd64
+
+          - arch: arm64
+            deps: qemu-user-static gcc-aarch64-linux-gnu
+            cc: aarch64-linux-gnu-gcc
+            binutil: /usr/bin/qemu-aarch64-static
+            platform: linux/arm64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: sudo apt-get install make ${{ matrix.deps }}
+
+      - name: Build binary
+        run: CC=${{ matrix.cc }} MAX_THREADS=2 make
+
+      - name: Login to ghcr.io
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate image metadata
+        id: image-meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=raw,value=${{ matrix.arch }},enable={{is_default_branch}}
+            type=sha,enable=true,prefix=${{ matrix.arch }}-
+            type=sha,format=long,enable=true,prefix=${{ matrix.arch }}-
+
+      - name: Build image and push to registry
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: ${{ matrix.platform }}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.image-meta.outputs.tags }}
+          labels: ${{ steps.image-meta.outputs.labels }}
+
+  post:
+    name: Publish Multi-Arch Manifest
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master'
+
+    needs:
+      - build
+
+    env:
+      IMAGE_NAME: ghcr.io/${{ github.repository }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Login to ghcr.io
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push Multi-Arch Manifests
+        run: |
+          docker manifest create ${IMAGE_NAME}:latest \
+              --amend ${IMAGE_NAME}:{amd,arm}64
+          docker manifest create ${IMAGE_NAME}:${GITHUB_SHA} \
+              --amend ${IMAGE_NAME}:{amd,arm}64-${GITHUB_SHA}
+          docker manifest create ${IMAGE_NAME}:${GITHUB_SHA::7} \
+              --amend ${IMAGE_NAME}:{amd,arm}64-${GITHUB_SHA::7}
+          
+          docker manifest push ${IMAGE_NAME}:latest
+          docker manifest push ${IMAGE_NAME}:${GITHUB_SHA}
+          docker manifest push ${IMAGE_NAME}:${GITHUB_SHA::7}
