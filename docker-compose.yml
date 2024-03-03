@@ -1,0 +1,17 @@
+version: '3'
+services:
+  kms:
+    image: ghcr.io/b4tman/vlmcsd:latest
+    container_name: vlmcsd
+    restart: always
+    ports:
+      - '1688:1688/tcp'
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    volumes:
+      - ./etc/vlmcsd.ini:/etc/vlmcsd.ini:ro
+      - ./etc/vlmcsd.kmd:/etc/vlmcsd.kmd:ro
+
