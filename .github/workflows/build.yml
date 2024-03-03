@@ -36,7 +36,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install build dependencies
-        run: sudo apt-get install make ${{ matrix.deps }}
+        run: sudo apt-get update && sudo apt-get install make ${{ matrix.deps }}
 
       - name: Build binary
         run: CC=${{ matrix.cc }} MAX_THREADS=2 make
