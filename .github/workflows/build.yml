@@ -34,6 +34,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      
+      - name: set version
+        run: sed -i -e "s|^#define\s\+VERSION.\+$|#define VERSION \"${{ github.repository }} / ${{ github.sha }}\"|" src/config.h
 
       - name: Install build dependencies
         run: sudo apt-get update && sudo apt-get install make ${{ matrix.deps }}
