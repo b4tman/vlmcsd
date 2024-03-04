@@ -12,6 +12,5 @@ services:
         max-size: "10m"
         max-file: "5"
     volumes:
-      - ./etc/vlmcsd.ini:/etc/vlmcsd.ini:ro
-      - ./etc/vlmcsd.kmd:/etc/vlmcsd.kmd:ro
+      - ./etc/vlmcsd.kmd:/vlmcsd.kmd:ro
 
