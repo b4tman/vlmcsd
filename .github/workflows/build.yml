@@ -94,6 +94,8 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - run: docker version
+
       - name: Push Multi-Arch Manifests
         run: |
           docker manifest create ${IMAGE_NAME}:latest \
